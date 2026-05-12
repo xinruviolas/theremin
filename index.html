@@ -7,195 +7,174 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,500&family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --cream:     #FDF3E0;
-      --cream-md:  #F5E4C0;
-      --cream-dk:  #E8D098;
-      --tan:       #D4A860;
-      --orange:    #C86030;
-      --marigold:  #E08840;
-      --sage:      #6A8E6A;
-      --brown:     #4A2C14;
-      --taupe:     #7A5030;
-      --cam-bg:    #180E04;
+      --cream:#FDF3E0; --cream-md:#F5E4C0; --cream-dk:#E8D098;
+      --tan:#D4A860; --orange:#C86030; --marigold:#E08840;
+      --sage:#6A8E6A; --brown:#4A2C14; --taupe:#7A5030;
+      --cam-bg:#180E04;
     }
+    html,body { height:100%; background:var(--cream); color:var(--brown); overflow:hidden; }
+    body { display:grid; grid-template-rows:56px 1fr 50px; height:100vh;
+           font-family:'Share Tech Mono','Courier New',monospace; }
 
-    html, body { height: 100%; background: var(--cream); color: var(--brown); overflow: hidden; }
+    /* ── Header ─────────────────────────── */
+    header { background:var(--orange); display:flex; align-items:center;
+             justify-content:space-between; padding:0 28px; }
+    .logo { display:flex; align-items:baseline; gap:12px; }
+    h1 { font-family:'Playfair Display',Georgia,serif; font-style:italic;
+         font-size:1.85rem; color:var(--cream); letter-spacing:.03em; }
+    .tagline { font-size:.57rem; letter-spacing:.24em; color:rgba(253,243,224,.6);
+               text-transform:uppercase; }
+    .status-pill { display:flex; align-items:center; gap:8px;
+                   border:1.5px solid rgba(253,243,224,.3); border-radius:20px;
+                   padding:5px 14px; font-size:.58rem; letter-spacing:.2em;
+                   color:rgba(253,243,224,.7); }
+    .dot { width:7px; height:7px; border-radius:50%;
+           background:rgba(253,243,224,.25); transition:all .4s; }
+    .dot.live { background:var(--cream); box-shadow:0 0 8px rgba(253,243,224,.6);
+                animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
 
-    body {
-      display: grid;
-      grid-template-rows: 56px 1fr 50px;
-      height: 100vh;
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
+    /* ── Main ───────────────────────────── */
+    main { display:grid; grid-template-columns:1fr 258px; overflow:hidden; }
+
+    /* ── Camera ─────────────────────────── */
+    .cam-wrap { position:relative; background:var(--cam-bg); overflow:hidden; }
+    video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
+    #overlay { position:absolute; inset:0; width:100%; height:100%; }
+    .scanlines { position:absolute; inset:0; pointer-events:none; z-index:5;
+      background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,
+        rgba(200,136,64,.07) 3px,rgba(200,136,64,.07) 4px); }
+    .grain { position:absolute; inset:0; pointer-events:none; z-index:6;
+             opacity:.13; background-size:256px 256px; }
+    .brackets { position:absolute; inset:16px; z-index:7; pointer-events:none; }
+    .br { position:absolute; width:22px; height:22px; }
+    .br-tl { top:0;left:0;    border-top:2px solid var(--marigold); border-left:2px solid var(--marigold);   border-radius:5px 0 0 0; }
+    .br-tr { top:0;right:0;   border-top:2px solid var(--marigold); border-right:2px solid var(--marigold);  border-radius:0 5px 0 0; }
+    .br-bl { bottom:0;left:0; border-bottom:2px solid var(--marigold); border-left:2px solid var(--marigold); border-radius:0 0 0 5px; }
+    .br-br { bottom:0;right:0;border-bottom:2px solid var(--marigold); border-right:2px solid var(--marigold);border-radius:0 0 5px 0; }
+    .hud { position:absolute; top:22px; left:22px; z-index:8; pointer-events:none; }
+    .hud-line { font-size:.54rem; letter-spacing:.18em; color:rgba(224,168,112,.65); margin-bottom:4px; }
+
+    /* ── Record Player ──────────────────── */
+    .record-player {
+      position:absolute; bottom:18px; left:18px; width:180px; z-index:20;
+      background:linear-gradient(145deg,#4A2810,#2A1408);
+      border:2px solid #7A4828; border-radius:14px; padding:11px;
+      box-shadow:0 8px 40px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05);
+      user-select:none;
     }
-
-    /* ── Header ───────────────────────────────────────────── */
-    header {
-      background: var(--orange);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 28px;
+    .record-player.dragging {
+      box-shadow:0 16px 56px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.05);
+      opacity:.92; cursor:grabbing;
     }
-
-    .logo { display: flex; align-items: baseline; gap: 12px; }
-
-    h1 {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-style: italic; font-weight: 500;
-      font-size: 1.85rem; letter-spacing: 0.03em;
-      color: var(--cream);
+    .rp-drag-handle {
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      cursor:grab; margin-bottom:8px; padding-bottom:6px;
+      border-bottom:1px solid rgba(255,255,255,.07);
     }
-
-    .tagline {
-      font-size: 0.57rem; letter-spacing: 0.24em;
-      color: rgba(253,243,224,0.6); text-transform: uppercase;
+    .rp-drag-handle:active { cursor:grabbing; }
+    .rp-drag-dots { display:flex; flex-direction:column; gap:2px; opacity:.35; }
+    .rp-drag-dots span { display:flex; gap:2px; }
+    .rp-drag-dots i { display:block; width:2px; height:2px; border-radius:50%; background:var(--cream); }
+    .rp-title { font-family:'Playfair Display',serif; font-style:italic;
+                font-size:.66rem; color:rgba(253,243,224,.6); text-align:center;
+                letter-spacing:.04em; pointer-events:none; }
+    .song-list { display:flex; flex-direction:column; gap:4px; margin-bottom:7px; }
+    .song-btn { width:100%; background:rgba(253,243,224,.07);
+                border:1.5px solid rgba(253,243,224,.14); border-radius:8px;
+                padding:5px 8px; cursor:pointer; text-align:left; transition:all .15s; }
+    .song-btn:hover { background:rgba(200,96,48,.22); border-color:rgba(200,96,48,.5); }
+    .song-btn.active { background:rgba(200,96,48,.32); border-color:var(--orange); }
+    .song-btn .sn { display:block; font-size:.5rem; color:var(--cream);
+                    font-family:'Share Tech Mono',monospace; letter-spacing:.03em; }
+    .song-btn .sa { display:block; font-size:.42rem; color:rgba(253,243,224,.45);
+                    font-family:'Share Tech Mono',monospace; }
+    .rp-clear-btn {
+      width:100%; background:rgba(253,243,224,.06);
+      border:1.5px solid rgba(253,243,224,.14); border-radius:8px;
+      padding:4px 8px; cursor:pointer; font-size:.48rem; letter-spacing:.1em;
+      color:rgba(253,243,224,.5); font-family:'Share Tech Mono',monospace;
+      transition:all .15s; margin-bottom:8px; text-align:center;
     }
+    .rp-clear-btn:hover { background:rgba(253,243,224,.1); color:rgba(253,243,224,.8); }
+    .rp-clear-btn.lines-hidden { background:rgba(200,96,48,.25); border-color:rgba(200,96,48,.5);
+                                  color:var(--cream); }
+    .turntable { position:relative; width:100%; aspect-ratio:1; }
+    .tonearm-svg { position:absolute; inset:0; transform-origin:89% 13%;
+                   transform:rotate(-28deg); transition:transform .9s ease; }
+    .tonearm-svg.on-record { transform:rotate(4deg); }
+    @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+    #recordDisc.spinning { transform-box:fill-box; transform-origin:center;
+                            animation:spin 2.2s linear infinite; }
 
-    .status-pill {
-      display: flex; align-items: center; gap: 8px;
-      border: 1.5px solid rgba(253,243,224,0.3);
-      border-radius: 20px; padding: 5px 14px;
-      font-size: 0.58rem; letter-spacing: 0.2em;
-      color: rgba(253,243,224,0.7);
-    }
+    /* ── Start Overlay ──────────────────── */
+    #startOverlay { position:absolute; inset:0; z-index:30;
+      background:rgba(24,14,4,.9); display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:18px; transition:opacity .6s; }
+    #startOverlay.gone { opacity:0; pointer-events:none; }
+    #startBtn { font-family:'Playfair Display',serif; font-style:italic;
+                font-size:1.55rem; color:var(--cream); background:var(--orange);
+                border:none; border-radius:40px; padding:11px 44px;
+                cursor:pointer; letter-spacing:.05em; transition:all .2s; }
+    #startBtn:hover { background:var(--marigold); }
+    #startBtn:disabled { opacity:.5; cursor:default; }
+    .start-hint { font-size:.58rem; letter-spacing:.1em;
+                  color:rgba(224,168,112,.55); text-align:center; line-height:1.9; }
 
-    .dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(253,243,224,0.25); transition: all 0.4s; }
-    .dot.live { background: var(--cream); box-shadow: 0 0 8px rgba(253,243,224,0.6); animation: pulse 2s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+    /* ── Right Panel ────────────────────── */
+    .panel { border-left:2px solid var(--tan); background:var(--cream-md);
+             display:flex; flex-direction:column; overflow:hidden; position:relative; }
+    .panel::before { content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+      background-image:radial-gradient(circle,var(--tan) 1.2px,transparent 1.2px);
+      background-size:14px 14px; opacity:.28; }
+    .pblock { padding:14px 18px; border-bottom:1.5px solid var(--cream-dk);
+              flex-shrink:0; position:relative; z-index:1; }
+    .pblock.grow { flex:1; display:flex; flex-direction:column; }
+    .plabel { font-size:.54rem; letter-spacing:.3em; color:var(--taupe);
+              text-transform:uppercase; margin-bottom:5px; }
+    .note-big { font-family:'Playfair Display',serif; font-style:italic;
+                font-size:5.2rem; line-height:.92; color:var(--orange); }
+    .freq-read { font-family:'VT323',monospace; font-size:2rem; line-height:1; color:var(--brown); }
+    .freq-unit { font-size:.85rem; color:var(--taupe); }
+    .hbar-track { height:6px; background:var(--cream-dk); border-radius:3px; margin-top:4px; }
+    .hbar-fill { height:100%; border-radius:3px; width:0%; transition:width .07s;
+                 background:linear-gradient(to right,var(--sage),var(--marigold)); }
+    .meters { flex:1; display:flex; gap:10px; align-items:flex-end; }
+    .mcol { flex:1; display:flex; flex-direction:column; height:100%; }
+    .mtrack { flex:1; background:var(--cream-dk); border-radius:4px 4px 0 0;
+              display:flex; align-items:flex-end; }
+    .mfill { width:100%; height:0%; transition:height .07s; border-radius:4px 4px 0 0; }
+    .pitch-fill { background:linear-gradient(to top,var(--orange),var(--marigold)); }
+    .vol-fill { background:linear-gradient(to top,var(--sage),#9ABE8A); }
+    .instr { font-size:.6rem; color:var(--taupe); line-height:2.1; letter-spacing:.06em; }
+    .instr .k { color:var(--orange); }
+    .song-info { display:none; }
+    .song-info.visible { display:block; }
+    .song-now { font-family:'Playfair Display',serif; font-style:italic;
+                font-size:1.05rem; line-height:1.2; color:var(--orange); margin-bottom:2px; }
+    .song-meta { font-size:.52rem; color:var(--taupe); letter-spacing:.15em; margin-bottom:3px; }
+    .song-guide-hint { margin-top:10px; font-size:.58rem; color:var(--brown);
+                       line-height:1.9; letter-spacing:.06em; }
+    .song-guide-hint .k { color:var(--orange); }
+    .legend { display:flex; gap:8px; margin-top:8px; align-items:center; }
+    .leg-swatch { width:14px; height:8px; border-radius:3px; flex-shrink:0; }
+    .leg-label { font-size:.5rem; color:var(--taupe); letter-spacing:.06em; }
 
-    /* ── Main ─────────────────────────────────────────────── */
-    main { display: grid; grid-template-columns: 1fr 258px; overflow: hidden; }
-
-    /* ── Camera ───────────────────────────────────────────── */
-    .cam-wrap { position: relative; background: var(--cam-bg); overflow: hidden; }
-
-    video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
-
-    #overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-    .scanlines {
-      position: absolute; inset: 0; pointer-events: none; z-index: 5;
-      background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px, transparent 3px,
-        rgba(200,136,64,0.07) 3px, rgba(200,136,64,0.07) 4px
-      );
-    }
-
-    /* Film grain — background-image filled by JS */
-    .grain {
-      position: absolute; inset: 0; pointer-events: none; z-index: 6;
-      opacity: 0.13; background-size: 256px 256px;
-    }
-
-    /* Corner brackets */
-    .brackets { position: absolute; inset: 16px; z-index: 7; pointer-events: none; }
-    .br { position: absolute; width: 22px; height: 22px; }
-    .br-tl { top:0;left:0;   border-top:2px solid var(--marigold); border-left:2px solid var(--marigold);   border-radius:5px 0 0 0; }
-    .br-tr { top:0;right:0;  border-top:2px solid var(--marigold); border-right:2px solid var(--marigold);  border-radius:0 5px 0 0; }
-    .br-bl { bottom:0;left:0;  border-bottom:2px solid var(--marigold); border-left:2px solid var(--marigold);  border-radius:0 0 0 5px; }
-    .br-br { bottom:0;right:0; border-bottom:2px solid var(--marigold); border-right:2px solid var(--marigold); border-radius:0 0 5px 0; }
-
-    .hud { position: absolute; top: 22px; left: 22px; z-index: 8; pointer-events: none; }
-    .hud-line { font-size: 0.54rem; letter-spacing: 0.18em; color: rgba(224,168,112,0.65); margin-bottom: 4px; }
-
-    /* ── Start overlay ────────────────────────────────────── */
-    #startOverlay {
-      position: absolute; inset: 0; z-index: 30;
-      background: rgba(24,14,4,0.90);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 18px;
-      transition: opacity 0.6s ease;
-    }
-    #startOverlay.gone { opacity: 0; pointer-events: none; }
-
-    #startBtn {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-style: italic; font-size: 1.55rem;
-      color: var(--cream); background: var(--orange);
-      border: none; border-radius: 40px;
-      padding: 11px 44px; cursor: pointer;
-      letter-spacing: 0.05em; transition: all 0.2s;
-    }
-    #startBtn:hover  { background: var(--marigold); }
-    #startBtn:active { transform: scale(0.97); }
-    #startBtn:disabled { opacity: 0.5; cursor: default; }
-
-    .start-hint {
-      font-size: 0.58rem; letter-spacing: 0.1em;
-      color: rgba(224,168,112,0.55); text-align: center; line-height: 1.9;
-    }
-
-    /* ── Right panel ──────────────────────────────────────── */
-    .panel {
-      border-left: 2px solid var(--tan);
-      background: var(--cream-md);
-      display: flex; flex-direction: column; overflow: hidden;
-      position: relative;
-    }
-
-    /* 70s dot wallpaper */
-    .panel::before {
-      content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-      background-image: radial-gradient(circle, var(--tan) 1.2px, transparent 1.2px);
-      background-size: 14px 14px; opacity: 0.28;
-    }
-
-    .pblock {
-      padding: 14px 18px; border-bottom: 1.5px solid var(--cream-dk);
-      flex-shrink: 0; position: relative; z-index: 1;
-    }
-    .pblock.grow { flex: 1; display: flex; flex-direction: column; }
-
-    .plabel {
-      font-size: 0.54rem; letter-spacing: 0.3em;
-      color: var(--taupe); text-transform: uppercase; margin-bottom: 5px;
-    }
-
-    .note-big {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-style: italic; font-size: 5.2rem; line-height: 0.92;
-      color: var(--orange); letter-spacing: 0.02em;
-    }
-
-    .freq-read { font-family: 'VT323', monospace; font-size: 2rem; line-height: 1; color: var(--brown); }
-    .freq-unit { font-size: 0.85rem; color: var(--taupe); }
-
-    .hbar-track { height: 6px; background: var(--cream-dk); border-radius: 3px; margin-top: 4px; }
-    .hbar-fill  { height: 100%; border-radius: 3px; width: 0%; transition: width 0.07s; background: linear-gradient(to right, var(--sage), var(--marigold)); }
-
-    .meters { flex: 1; display: flex; gap: 10px; align-items: flex-end; }
-    .mcol   { flex: 1; display: flex; flex-direction: column; height: 100%; }
-    .mtrack { flex: 1; background: var(--cream-dk); border-radius: 4px 4px 0 0; display: flex; align-items: flex-end; }
-    .mfill  { width: 100%; height: 0%; transition: height 0.07s; border-radius: 4px 4px 0 0; }
-    .pitch-fill { background: linear-gradient(to top, var(--orange), var(--marigold)); }
-    .vol-fill   { background: linear-gradient(to top, var(--sage), #9ABE8A); }
-
-    .instr { font-size: 0.6rem; color: var(--taupe); line-height: 2.1; letter-spacing: 0.06em; }
-    .instr .k { color: var(--orange); }
-
-    /* ── Footer ───────────────────────────────────────────── */
-    footer {
-      border-top: 2px solid var(--tan); background: var(--cream);
-      display: flex; align-items: center; gap: 14px; padding: 0 22px;
-    }
-
-    .foot-label { font-size: 0.54rem; letter-spacing: 0.22em; color: var(--taupe); white-space: nowrap; }
-
-    #waveform { flex: 1; height: 28px; display: block; }
-
-    .wave-btns { display: flex; gap: 5px; }
-    .wbtn {
-      font-family: 'Share Tech Mono', monospace; font-size: 0.56rem; letter-spacing: 0.1em;
-      color: var(--taupe); background: transparent;
-      border: 1.5px solid var(--cream-dk); padding: 3px 10px; border-radius: 14px;
-      cursor: pointer; transition: all 0.15s;
-    }
-    .wbtn.active, .wbtn.on { color: var(--cream); background: var(--orange); border-color: var(--orange); }
-    .wbtn:hover:not(.active):not(.on) { border-color: var(--taupe); color: var(--brown); }
-
-    .divider { width: 1.5px; background: var(--tan); height: 22px; flex-shrink: 0; }
+    /* ── Footer ─────────────────────────── */
+    footer { border-top:2px solid var(--tan); background:var(--cream);
+             display:flex; align-items:center; gap:14px; padding:0 22px; }
+    .foot-label { font-size:.54rem; letter-spacing:.22em; color:var(--taupe); white-space:nowrap; }
+    #waveform { flex:1; height:28px; display:block; }
+    .wave-btns { display:flex; gap:5px; }
+    .wbtn { font-family:'Share Tech Mono',monospace; font-size:.56rem; letter-spacing:.1em;
+            color:var(--taupe); background:transparent;
+            border:1.5px solid var(--cream-dk); padding:3px 10px; border-radius:14px;
+            cursor:pointer; transition:all .15s; }
+    .wbtn.active,.wbtn.on { color:var(--cream); background:var(--orange); border-color:var(--orange); }
+    .wbtn:hover:not(.active):not(.on) { border-color:var(--taupe); color:var(--brown); }
+    .divider { width:1.5px; background:var(--tan); height:22px; flex-shrink:0; }
   </style>
 </head>
 <body>
@@ -212,7 +191,6 @@
 </header>
 
 <main>
-
   <div class="cam-wrap">
     <video id="video" playsinline autoplay muted></video>
     <canvas id="overlay"></canvas>
@@ -226,12 +204,70 @@
       <div class="hud-line">↕ HEIGHT → PITCH</div>
       <div class="hud-line">↔ POSITION → VOLUME</div>
     </div>
+
+    <!-- Record Player -->
+    <div class="record-player">
+      <div class="rp-drag-handle" id="rpHandle">
+        <div class="rp-drag-dots">
+          <span><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+        <div class="rp-title">choose a song ♪</div>
+        <div class="rp-drag-dots">
+          <span><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+      </div>
+      <div class="song-list">
+        <button class="song-btn" data-song="dancing-queen">
+          <span class="sn">Dancing Queen</span>
+          <span class="sa">ABBA · A major</span>
+        </button>
+        <button class="song-btn" data-song="lover-girl">
+          <span class="sn">Lover Girl</span>
+          <span class="sa">Laufey · B major</span>
+        </button>
+        <button class="song-btn" data-song="viva-la-vida">
+          <span class="sn">Viva la Vida</span>
+          <span class="sa">Coldplay · A♭ major</span>
+        </button>
+      </div>
+      <button id="clearLinesBtn" class="rp-clear-btn">✕ hide lines</button>
+      <div class="turntable">
+        <svg viewBox="0 0 120 120" style="width:100%;display:block;">
+          <g id="recordDisc">
+            <circle cx="60" cy="60" r="58" fill="#150803"/>
+            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,.025)" stroke-width="1.2"/>
+            <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,.025)" stroke-width="1"/>
+            <circle cx="60" cy="60" r="42" fill="none" stroke="rgba(255,255,255,.03)"  stroke-width="1"/>
+            <circle cx="60" cy="60" r="36" fill="none" stroke="rgba(255,255,255,.025)" stroke-width="1"/>
+            <circle cx="60" cy="60" r="30" fill="none" stroke="rgba(255,255,255,.025)" stroke-width="1"/>
+            <circle cx="60" cy="60" r="23" fill="none" stroke="rgba(255,255,255,.04)"  stroke-width=".8"/>
+            <circle cx="60" cy="60" r="20" fill="#C86030"/>
+            <circle cx="60" cy="60" r="18" fill="#B85828"/>
+            <text id="labelLine1" x="60" y="57" text-anchor="middle"
+                  font-family="Playfair Display" font-style="italic" font-size="5.5" fill="#FDF3E0">select</text>
+            <text id="labelLine2" x="60" y="64" text-anchor="middle"
+                  font-family="Playfair Display" font-style="italic" font-size="4.8" fill="rgba(253,243,224,.7)">a song</text>
+            <circle cx="60" cy="60" r="2.2" fill="#150803"/>
+          </g>
+        </svg>
+        <svg class="tonearm-svg" id="tonearmSvg" viewBox="0 0 120 120" style="position:absolute;inset:0;width:100%;height:100%;">
+          <circle cx="107" cy="14" r="6"   fill="#A07828"/>
+          <circle cx="107" cy="14" r="3.5" fill="#C8A040"/>
+          <line x1="107" y1="14" x2="70" y2="70" stroke="#C8A040" stroke-width="2.2" stroke-linecap="round"/>
+          <rect x="65" y="68" width="9" height="5" rx="1.5" fill="#8A6020" transform="rotate(40 70 70)"/>
+        </svg>
+      </div>
+    </div>
+
     <div id="startOverlay">
       <button id="startBtn">Initialize</button>
       <span class="start-hint">Requires camera permission<br>Audio activates on click</span>
     </div>
   </div>
 
+  <!-- Right panel -->
   <div class="panel">
     <div class="pblock">
       <div class="plabel">Note</div>
@@ -249,34 +285,46 @@
       <div class="plabel">Levels</div>
       <div class="meters">
         <div class="mcol">
-          <div class="plabel" style="font-size:0.46rem;margin-bottom:3px;">PITCH</div>
+          <div class="plabel" style="font-size:.46rem;margin-bottom:3px;">PITCH</div>
           <div class="mtrack"><div class="mfill pitch-fill" id="pitchBar"></div></div>
         </div>
         <div class="mcol">
-          <div class="plabel" style="font-size:0.46rem;margin-bottom:3px;">VOL</div>
+          <div class="plabel" style="font-size:.46rem;margin-bottom:3px;">VOL</div>
           <div class="mtrack"><div class="mfill vol-fill" id="volBarV"></div></div>
         </div>
       </div>
     </div>
     <div class="pblock">
-      <div class="plabel">Controls</div>
-      <div class="instr">
+      <div class="plabel">Info</div>
+      <div class="instr" id="defaultInstr">
         <span class="k">↕ Hand height</span> → pitch<br>
         <span class="k">↔ Left / right</span> → volume<br>
         <span class="k">No hand</span> → silence
       </div>
+      <div class="song-info" id="songInfo">
+        <div class="song-now"  id="songName">—</div>
+        <div class="song-meta" id="songMeta">—</div>
+        <div class="song-guide-hint">
+          Move your hand to<br>match the <span class="k">coloured bars</span>
+        </div>
+        <div class="legend">
+          <div class="leg-swatch" style="background:rgba(200,96,48,.75);"></div>
+          <span class="leg-label">phrase 1</span>
+          <div class="leg-swatch" style="background:rgba(106,142,106,.75);"></div>
+          <span class="leg-label">phrase 2</span>
+        </div>
+      </div>
     </div>
   </div>
-
 </main>
 
 <footer>
   <span class="foot-label">WAVEFORM</span>
   <canvas id="waveform"></canvas>
   <div class="wave-btns">
-    <button class="wbtn active" data-wave="sine">SINE</button>
+    <button class="wbtn" data-wave="sine">SINE</button>
     <button class="wbtn" data-wave="triangle">TRI</button>
-    <button class="wbtn" data-wave="sawtooth">SAW</button>
+    <button class="wbtn active" data-wave="sawtooth">SAW</button>
     <button class="wbtn" data-wave="square">SQR</button>
   </div>
   <div class="divider"></div>
@@ -286,256 +334,534 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-
 <script>
 // ═══════════════════════════════════════════
-//  GRAIN TEXTURE — generated at runtime
+//  GRAIN TEXTURE
 // ═══════════════════════════════════════════
-(function () {
-  const c = document.createElement('canvas');
-  c.width = c.height = 256;
-  const x = c.getContext('2d');
-  const img = x.createImageData(256, 256);
-  for (let i = 0; i < img.data.length; i += 4) {
-    const v = Math.random() * 255;
-    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-    img.data[i + 3] = 255;
+(function(){
+  const c=document.createElement('canvas'); c.width=c.height=256;
+  const x=c.getContext('2d'), img=x.createImageData(256,256);
+  for(let i=0;i<img.data.length;i+=4){
+    const v=Math.random()*255;
+    img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255;
   }
-  x.putImageData(img, 0, 0);
-  document.getElementById('grainLayer').style.backgroundImage = `url(${c.toDataURL()})`;
+  x.putImageData(img,0,0);
+  document.getElementById('grainLayer').style.backgroundImage=`url(${c.toDataURL()})`;
 })();
+
+// ═══════════════════════════════════════════
+//  SONG DATA
+// ═══════════════════════════════════════════
+const SONGS = {
+  'dancing-queen': {
+    name:'Dancing Queen', artist:'ABBA', key:'A major',
+    scalePCs:[9,11,1,2,4,6,8],
+    labelShort:['Dancing','Queen'],
+    phrases:[
+      // "You are the Dancing Queen"
+      [
+        {freq:329.63, label:'E4',  lyric:'You'},
+        {freq:369.99, label:'F♯4', lyric:'are'},
+        {freq:415.30, label:'G♯4', lyric:'the'},
+        {freq:415.30, label:'G♯4', lyric:'Dan-'},
+        {freq:440.00, label:'A4',  lyric:'-cing'},
+        {freq:440.00, label:'A4',  lyric:'Queen'},
+      ],
+      // "young and sweet, only seventeen"
+      [
+        {freq:415.30, label:'G♯4', lyric:'young'},
+        {freq:440.00, label:'A4',  lyric:'and'},
+        {freq:440.00, label:'A4',  lyric:'sweet'},
+        {freq:493.88, label:'B4',  lyric:'on-'},
+        {freq:440.00, label:'A4',  lyric:'-ly'},
+        {freq:440.00, label:'A4',  lyric:'sev-'},
+        {freq:415.30, label:'G♯4', lyric:'-en-'},
+        {freq:440.00, label:'A4',  lyric:'-teen'},
+        {freq:440.00, label:'A4',  lyric:'♪'},
+      ]
+    ]
+  },
+  'lover-girl': {
+    name:'Lover Girl', artist:'Laufey', key:'B major',
+    scalePCs:[11,1,3,4,6,8,10],
+    labelShort:['Lover','Girl'],
+    phrases:[
+      // "The skyscraper's causing vertigo"
+      [
+        {freq:277.18, label:'C♯4', lyric:'The'},
+        {freq:311.13, label:'D♯4', lyric:'sky-'},
+        {freq:277.18, label:'C♯4', lyric:'-scra-'},
+        {freq:246.94, label:'B3',  lyric:"-per's"},
+        {freq:220.00, label:'A3',  lyric:'caus-'},
+        {freq:246.94, label:'B3',  lyric:'-ing'},
+        {freq:220.00, label:'A3',  lyric:'ver-'},
+        {freq:246.94, label:'B3',  lyric:'-ti-'},
+        {freq:311.13, label:'D♯4', lyric:'-go'},
+      ]
+    ]
+  },
+  'viva-la-vida': {
+    name:'Viva la Vida', artist:'Coldplay', key:'A♭ major',
+    scalePCs:[8,10,0,1,3,5,7],
+    labelShort:['Viva','la Vida'],
+    phrases:[
+      // "I used to rule the world"
+      [
+        {freq:523.25, label:'C5',  lyric:'I'},
+        {freq:523.25, label:'C5',  lyric:'used'},
+        {freq:523.25, label:'C5',  lyric:'to'},
+        {freq:554.37, label:'D♭5', lyric:'rule'},
+        {freq:466.16, label:'B♭4', lyric:'world'},
+      ],
+      // "Seas would rise when I gave"
+      [
+        {freq:466.16, label:'B♭4', lyric:'Seas'},
+        {freq:415.30, label:'A♭4', lyric:'would'},
+        {freq:466.16, label:'B♭4', lyric:'rise'},
+        {freq:466.16, label:'B♭4', lyric:'when'},
+        {freq:415.30, label:'A♭4', lyric:'I'},
+        {freq:523.25, label:'C5',  lyric:'gave'},
+        {freq:311.13, label:'E♭4', lyric:'the'},
+        {freq:349.23, label:'F4',  lyric:'word'},
+      ]
+    ]
+  }
+};
 
 // ═══════════════════════════════════════════
 //  AUDIO ENGINE
 // ═══════════════════════════════════════════
 let audioCtx, osc, gainNode, analyser;
-let targetFreq = 440, targetGain = 0;
-let smoothFreq  = 440, smoothGain  = 0;
+let targetFreq=440, targetGain=0, smoothFreq=440, smoothGain=0;
+const FREQ_MIN=220.00, FREQ_MAX=880.00;
 
-const FREQ_MIN = 220.00; // A3
-const FREQ_MAX = 880.00; // A5
+let autotuneOn=false, activeSong=null;
+const C_MAJOR_PCS=[0,2,4,5,7,9,11];
 
-// ═══════════════════════════════════════════
-//  AUTOTUNE — SNAP TO C MAJOR
-// ═══════════════════════════════════════════
-let autotuneOn = false;
-const C_MAJOR_PCS = [0, 2, 4, 5, 7, 9, 11];
-
-function snapToCMajor(freq) {
-  const exactMidi   = 12 * Math.log2(freq / 440) + 69;
-  const roundedMidi = Math.round(exactMidi);
-  const pc          = ((roundedMidi % 12) + 12) % 12;
-  if (C_MAJOR_PCS.includes(pc)) return 440 * Math.pow(2, (roundedMidi - 69) / 12);
-  let bestOffset = 0, bestDist = Infinity;
-  for (const target of C_MAJOR_PCS) {
-    const up   = ((target - pc) + 12) % 12;
-    const down = ((pc - target) + 12) % 12;
-    const offset = up <= down ? up : -down;
-    if (Math.abs(offset) < bestDist) { bestDist = Math.abs(offset); bestOffset = offset; }
+function snapToScale(freq,pcs){
+  if(!pcs) return freq;
+  const exact=12*Math.log2(freq/440)+69;
+  const rounded=Math.round(exact);
+  const pc=((rounded%12)+12)%12;
+  if(pcs.includes(pc)) return 440*Math.pow(2,(rounded-69)/12);
+  let bestOff=0, bestDist=Infinity;
+  for(const t of pcs){
+    const up=((t-pc)+12)%12, dn=((pc-t)+12)%12;
+    const off=up<=dn?up:-dn;
+    if(Math.abs(off)<bestDist){bestDist=Math.abs(off); bestOff=off;}
   }
-  return 440 * Math.pow(2, (roundedMidi + bestOffset - 69) / 12);
+  return 440*Math.pow(2,(rounded+bestOff-69)/12);
 }
 
-function initAudio() {
-  audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
-  osc       = audioCtx.createOscillator();
-  gainNode  = audioCtx.createGain();
-  analyser  = audioCtx.createAnalyser();
-  analyser.fftSize = 256;
-  osc.type = 'sine';
-  osc.frequency.value = 440;
-  gainNode.gain.value = 0;
-  osc.connect(gainNode);
-  gainNode.connect(analyser);
-  analyser.connect(audioCtx.destination);
+function getActiveScale(){
+  if(activeSong) return activeSong.scalePCs;
+  if(autotuneOn) return C_MAJOR_PCS;
+  return null;
+}
+
+function initAudio(){
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  osc=audioCtx.createOscillator();
+  gainNode=audioCtx.createGain();
+  analyser=audioCtx.createAnalyser();
+  analyser.fftSize=256;
+  osc.type='sawtooth';
+  osc.frequency.value=440;
+  gainNode.gain.value=0;
+  osc.connect(gainNode); gainNode.connect(analyser); analyser.connect(audioCtx.destination);
   osc.start();
   animate();
 }
 
-function tickAudio() {
-  const lf = autotuneOn ? 0.35 : 0.12, lg = 0.08;
-  smoothFreq += (targetFreq - smoothFreq) * lf;
-  smoothGain += (targetGain - smoothGain) * lg;
-  if (osc) {
-    osc.frequency.value = smoothFreq;
-    gainNode.gain.value = Math.max(0, smoothGain);
-  }
+function tickAudio(){
+  const lf=(activeSong||autotuneOn)?0.35:0.12, lg=0.08;
+  smoothFreq+=(targetFreq-smoothFreq)*lf;
+  smoothGain+=(targetGain-smoothGain)*lg;
+  if(osc){ osc.frequency.value=smoothFreq; gainNode.gain.value=Math.max(0,smoothGain); }
+}
+
+// ── Helpers ──────────────────────────────
+const NOTES=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+function freqToNote(f){
+  const s=Math.round(12*Math.log2(f/440))+69;
+  return NOTES[((s%12)+12)%12]+(Math.floor(s/12)-1);
+}
+function freqToY(freq,h){
+  const t=Math.log(freq/FREQ_MIN)/Math.log(FREQ_MAX/FREQ_MIN);
+  return(1-t)*h;
 }
 
 // ═══════════════════════════════════════════
-//  NOTE NAMES
+//  MIDI ROLL RENDERING
 // ═══════════════════════════════════════════
-const NOTES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
-function freqToNote(f) {
-  const s = Math.round(12 * Math.log2(f / 440)) + 69;
-  return NOTES[((s % 12) + 12) % 12] + (Math.floor(s / 12) - 1);
+let showLines=true;
+
+function roundRect(c,x,y,w,h,r){
+  if(w<2*r) r=w/2; if(h<2*r) r=h/2;
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y);
+  c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r);
+  c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h);
+  c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r);
+  c.quadraticCurveTo(x,y,x+r,y);
+  c.closePath();
+}
+
+function drawMidiRoll(c,w,h){
+  if(!activeSong||!showLines) return;
+
+  const phrases=activeSong.phrases;
+  // Build flat slot list: notes interspersed with gap markers between phrases
+  const slots=[];
+  phrases.forEach((phrase,pi)=>{
+    if(pi>0) slots.push({gap:true});
+    phrase.forEach(note=>slots.push({...note,pi}));
+  });
+
+  const PAD_X   = 26;
+  const GAP_W   = 18;
+  const BAR_H   = 12;
+  const numGaps = phrases.length-1;
+  const numNotes= slots.filter(s=>!s.gap).length;
+  const availW  = w - PAD_X*2 - numGaps*GAP_W;
+  const slotW   = availW/numNotes;
+  const barW    = Math.max(slotW*0.82, slotW-4);
+
+  // Subtle background wash behind the roll area
+  c.fillStyle='rgba(24,14,4,0.22)';
+  c.fillRect(0,0,w,h);
+
+  let x=PAD_X;
+
+  slots.forEach(slot=>{
+    if(slot.gap){
+      // Dashed phrase divider
+      c.save();
+      c.strokeStyle='rgba(212,168,96,0.35)';
+      c.lineWidth=1; c.setLineDash([5,4]);
+      c.beginPath(); c.moveTo(x+GAP_W/2,16); c.lineTo(x+GAP_W/2,h-16); c.stroke();
+      c.setLineDash([]);
+      // Phrase label
+      c.font='8px "Share Tech Mono"';
+      c.fillStyle='rgba(212,168,96,0.4)';
+      c.textAlign='center';
+      c.fillText('②',x+GAP_W/2,12);
+      c.restore();
+      x+=GAP_W;
+      return;
+    }
+
+    const y   = freqToY(slot.freq, h);
+    const isP1= slot.pi===0;
+    const fillCol  = isP1 ? 'rgba(200,96,48,0.74)'  : 'rgba(106,142,106,0.74)';
+    const strokeCol= isP1 ? 'rgba(220,120,60,0.90)'  : 'rgba(130,170,130,0.90)';
+    const textCol  = 'rgba(253,243,224,0.93)';
+    const noteCol  = isP1 ? 'rgba(220,120,60,0.85)'  : 'rgba(130,170,130,0.85)';
+
+    // Bar
+    c.fillStyle=fillCol;
+    roundRect(c, x, y-BAR_H/2, barW, BAR_H, 3);
+    c.fill();
+    c.strokeStyle=strokeCol; c.lineWidth=0.8;
+    c.stroke();
+
+    c.save();
+    c.textAlign='center'; c.textBaseline='middle';
+
+    // Lyric on bar
+    c.fillStyle=textCol;
+    c.font=`9px "Share Tech Mono"`;
+    c.fillText(slot.lyric, x+barW/2, y);
+
+    // Note label below bar
+    c.fillStyle=noteCol;
+    c.font=`8px "Share Tech Mono"`;
+    c.fillText(slot.label, x+barW/2, y+BAR_H/2+9);
+
+    c.restore();
+    x+=slotW;
+  });
+
+  // Phrase ① label at far left top
+  c.save();
+  c.font='8px "Share Tech Mono"';
+  c.fillStyle='rgba(212,168,96,0.4)';
+  c.textAlign='center';
+  c.fillText('①',PAD_X+slotW*phrases[0].length/2, 12);
+  c.restore();
+}
+
+// ═══════════════════════════════════════════
+//  SONG SELECTION
+// ═══════════════════════════════════════════
+function selectSong(key){
+  activeSong=SONGS[key];
+  showLines=true;
+  updateClearBtn();
+
+  // Record player UI
+  document.getElementById('recordDisc').classList.add('spinning');
+  document.getElementById('tonearmSvg').classList.add('on-record');
+  document.getElementById('labelLine1').textContent=activeSong.labelShort[0];
+  document.getElementById('labelLine2').textContent=activeSong.labelShort[1]||'';
+
+  document.querySelectorAll('.song-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-song="${key}"]`).classList.add('active');
+
+  // Right panel
+  document.getElementById('defaultInstr').style.display='none';
+  document.getElementById('songInfo').classList.add('visible');
+  document.getElementById('songName').textContent=activeSong.name;
+  document.getElementById('songMeta').textContent=
+    `${activeSong.artist.toUpperCase()} · ${activeSong.key}`;
+
+  // Disable generic autotune while a song is active (song has its own scale)
+  autotuneOn=false;
+  document.getElementById('autotuneBtn').classList.remove('on');
+}
+
+function stopSong(){
+  activeSong=null;
+  document.getElementById('recordDisc').classList.remove('spinning');
+  document.getElementById('tonearmSvg').classList.remove('on-record');
+  document.getElementById('labelLine1').textContent='select';
+  document.getElementById('labelLine2').textContent='a song';
+  document.querySelectorAll('.song-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('songInfo').classList.remove('visible');
+  document.getElementById('defaultInstr').style.display='';
+  showLines=true;
+  updateClearBtn();
+}
+
+function updateClearBtn(){
+  const btn=document.getElementById('clearLinesBtn');
+  if(!activeSong){ btn.textContent='— no song selected —'; btn.classList.remove('lines-hidden'); return; }
+  if(showLines){ btn.textContent='✕ hide lines'; btn.classList.remove('lines-hidden'); }
+  else          { btn.textContent='♩ show lines'; btn.classList.add('lines-hidden'); }
 }
 
 // ═══════════════════════════════════════════
 //  UI REFS
 // ═══════════════════════════════════════════
-const noteDisp  = document.getElementById('noteDisplay');
-const freqDisp  = document.getElementById('freqDisplay');
-const volBar    = document.getElementById('volBar');
-const volBarV   = document.getElementById('volBarV');
-const pitchBar  = document.getElementById('pitchBar');
-const statusDot = document.getElementById('statusDot');
-const statusTxt = document.getElementById('statusText');
-const startBtn  = document.getElementById('startBtn');
-const startOver = document.getElementById('startOverlay');
+const noteDisp =document.getElementById('noteDisplay');
+const freqDisp =document.getElementById('freqDisplay');
+const volBar   =document.getElementById('volBar');
+const volBarV  =document.getElementById('volBarV');
+const pitchBar =document.getElementById('pitchBar');
+const statusDot=document.getElementById('statusDot');
+const statusTxt=document.getElementById('statusText');
+const startBtn =document.getElementById('startBtn');
+const startOver=document.getElementById('startOverlay');
 
 // ═══════════════════════════════════════════
-//  CANVAS OVERLAY
+//  CANVAS + WAVEFORM
 // ═══════════════════════════════════════════
-const video  = document.getElementById('video');
-const canvas = document.getElementById('overlay');
-const ctx    = canvas.getContext('2d');
+const video =document.getElementById('video');
+const canvas=document.getElementById('overlay');
+const ctx   =canvas.getContext('2d');
+function syncCanvas(){ canvas.width=video.offsetWidth; canvas.height=video.offsetHeight; }
 
-function syncCanvas() { canvas.width = video.offsetWidth; canvas.height = video.offsetHeight; }
-
-// ═══════════════════════════════════════════
-//  WAVEFORM DISPLAY
-// ═══════════════════════════════════════════
-const wfCanvas = document.getElementById('waveform');
-const wfCtx    = wfCanvas.getContext('2d');
-
-function drawWaveform() {
-  const W = wfCanvas.offsetWidth, H = wfCanvas.offsetHeight;
-  wfCanvas.width = W; wfCanvas.height = H;
-  if (!analyser) { wfCtx.clearRect(0, 0, W, H); return; }
-  const buf = new Uint8Array(analyser.frequencyBinCount);
+const wfCanvas=document.getElementById('waveform');
+const wfCtx   =wfCanvas.getContext('2d');
+function drawWaveform(){
+  const W=wfCanvas.offsetWidth, H=wfCanvas.offsetHeight;
+  wfCanvas.width=W; wfCanvas.height=H;
+  if(!analyser){ wfCtx.clearRect(0,0,W,H); return; }
+  const buf=new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteTimeDomainData(buf);
-  wfCtx.clearRect(0, 0, W, H);
-  wfCtx.strokeStyle = smoothGain > 0.01 ? '#C86030' : '#D4A860';
-  wfCtx.lineWidth   = 1.5;
-  wfCtx.beginPath();
-  const step = W / buf.length; let x = 0;
-  for (let i = 0; i < buf.length; i++) {
-    const y = (buf[i] / 128.0) * (H / 2);
-    i === 0 ? wfCtx.moveTo(x, y) : wfCtx.lineTo(x, y);
-    x += step;
+  wfCtx.clearRect(0,0,W,H);
+  wfCtx.strokeStyle=smoothGain>0.01?'#C86030':'#D4A860';
+  wfCtx.lineWidth=1.5; wfCtx.beginPath();
+  const step=W/buf.length; let x=0;
+  for(let i=0;i<buf.length;i++){
+    const y=(buf[i]/128.0)*(H/2);
+    i===0?wfCtx.moveTo(x,y):wfCtx.lineTo(x,y); x+=step;
   }
   wfCtx.stroke();
 }
 
-function animate() { requestAnimationFrame(animate); tickAudio(); drawWaveform(); }
+function animate(){ requestAnimationFrame(animate); tickAudio(); drawWaveform(); }
 
 // ═══════════════════════════════════════════
 //  HAND TRACKING
 // ═══════════════════════════════════════════
-function onResults(results) {
+function onResults(results){
   syncCanvas();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Mirror canvas to align with CSS-mirrored video
+  // 1. Draw MIDI roll in normal (un-mirrored) coordinates
+  drawMidiRoll(ctx, canvas.width, canvas.height);
+
+  // 2. Draw hand skeleton in mirrored coordinates (to match CSS-mirrored video)
   ctx.save();
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
+  ctx.translate(canvas.width,0); ctx.scale(-1,1);
 
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-    const lm = results.multiHandLandmarks[0];
+  if(results.multiHandLandmarks&&results.multiHandLandmarks.length>0){
+    const lm=results.multiHandLandmarks[0];
 
-    // Skeleton in warm marigold
-    drawConnectors(ctx, lm, HAND_CONNECTIONS, { color: 'rgba(224,136,64,0.38)', lineWidth: 2 });
+    drawConnectors(ctx,lm,HAND_CONNECTIONS,{color:'rgba(224,136,64,.38)',lineWidth:2});
+    drawLandmarks(ctx,lm,{color:'rgba(200,96,48,.85)',fillColor:'rgba(24,14,4,.65)',lineWidth:1,radius:3});
 
-    // Joint dots in orange
-    drawLandmarks(ctx, lm, {
-      color: 'rgba(200,96,48,0.85)',
-      fillColor: 'rgba(24,14,4,0.65)',
-      lineWidth: 1, radius: 3
-    });
+    const tip=lm[8];
+    const tx=tip.x*canvas.width, ty=tip.y*canvas.height;
 
-    // Index fingertip (landmark 8) — sage green
-    const tip = lm[8];
-    const tx  = tip.x * canvas.width;
-    const ty  = tip.y * canvas.height;
-
-    ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = 'rgba(106,142,106,0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx, canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(canvas.width, ty);  ctx.stroke();
+    ctx.setLineDash([5,5]);
+    ctx.strokeStyle='rgba(106,142,106,.28)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(tx,0); ctx.lineTo(tx,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,ty); ctx.lineTo(canvas.width,ty);  ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.beginPath(); ctx.arc(tx, ty, 13, 0, Math.PI * 2);
-    ctx.strokeStyle = '#6A8E6A'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.beginPath(); ctx.arc(tx, ty, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#6A8E6A'; ctx.fill();
+    ctx.beginPath(); ctx.arc(tx,ty,13,0,Math.PI*2);
+    ctx.strokeStyle='#6A8E6A'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(tx,ty,4,0,Math.PI*2);
+    ctx.fillStyle='#6A8E6A'; ctx.fill();
 
     ctx.restore();
 
-    // Map to audio
-    const pitchNorm = 1 - tip.y;
-    const rawFreq   = FREQ_MIN * Math.pow(FREQ_MAX / FREQ_MIN, pitchNorm);
-    targetFreq = autotuneOn ? snapToCMajor(rawFreq) : rawFreq;
-    targetGain = tip.x * 0.45;
+    // Audio mapping
+    const pitchNorm=1-tip.y;
+    const rawFreq=FREQ_MIN*Math.pow(FREQ_MAX/FREQ_MIN,pitchNorm);
+    const scale=getActiveScale();
+    targetFreq=scale?snapToScale(rawFreq,scale):rawFreq;
+    targetGain=tip.x*0.45;
 
-    const volPct = (targetGain / 0.45) * 100;
-    noteDisp.textContent = freqToNote(smoothFreq);
-    freqDisp.innerHTML   = `${Math.round(smoothFreq)}<span class="freq-unit"> Hz</span>`;
-    volBar.style.width    = volPct + '%';
-    volBarV.style.height  = volPct + '%';
-    pitchBar.style.height = (pitchNorm * 100) + '%';
+    const volPct=(targetGain/0.45)*100;
+    noteDisp.textContent=freqToNote(smoothFreq);
+    freqDisp.innerHTML=`${Math.round(smoothFreq)}<span class="freq-unit"> Hz</span>`;
+    volBar.style.width=volPct+'%';
+    volBarV.style.height=volPct+'%';
+    pitchBar.style.height=(pitchNorm*100)+'%';
     statusDot.classList.add('live');
-    statusTxt.textContent = 'PLAYING';
+    statusTxt.textContent='PLAYING';
 
   } else {
     ctx.restore();
-    targetGain = 0;
-    noteDisp.textContent  = '—';
-    freqDisp.innerHTML    = `—<span class="freq-unit"> Hz</span>`;
-    volBar.style.width    = '0%';
-    volBarV.style.height  = '0%';
+    targetGain=0;
+    noteDisp.textContent='—';
+    freqDisp.innerHTML=`—<span class="freq-unit"> Hz</span>`;
+    volBar.style.width='0%'; volBarV.style.height='0%';
     statusDot.classList.remove('live');
-    statusTxt.textContent = 'NO SIGNAL';
+    statusTxt.textContent='NO SIGNAL';
   }
 }
 
 // ═══════════════════════════════════════════
-//  WAVE TYPE SELECTOR
+//  EVENT LISTENERS
 // ═══════════════════════════════════════════
-document.querySelectorAll('.wbtn[data-wave]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.wbtn[data-wave]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    if (osc) osc.type = btn.dataset.wave;
+document.querySelectorAll('.song-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const key=btn.dataset.song;
+    if(btn.classList.contains('active')) stopSong();
+    else selectSong(key);
   });
 });
 
-// ═══════════════════════════════════════════
-//  AUTOTUNE TOGGLE
-// ═══════════════════════════════════════════
-const autotuneBtn = document.getElementById('autotuneBtn');
-autotuneBtn.addEventListener('click', () => {
-  autotuneOn = !autotuneOn;
-  autotuneBtn.classList.toggle('on', autotuneOn);
+document.getElementById('clearLinesBtn').addEventListener('click',()=>{
+  if(!activeSong) return;
+  showLines=!showLines;
+  updateClearBtn();
 });
+
+document.querySelectorAll('.wbtn[data-wave]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.wbtn[data-wave]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(osc) osc.type=btn.dataset.wave;
+  });
+});
+
+document.getElementById('autotuneBtn').addEventListener('click',()=>{
+  if(activeSong) return; // song provides its own scale
+  autotuneOn=!autotuneOn;
+  document.getElementById('autotuneBtn').classList.toggle('on',autotuneOn);
+});
+
+// ═══════════════════════════════════════════
+//  DRAGGABLE RECORD PLAYER
+// ═══════════════════════════════════════════
+(function(){
+  const el     = document.querySelector('.record-player');
+  const handle = document.getElementById('rpHandle');
+  const wrap   = el.parentElement; // .cam-wrap
+  let dragging = false, ox = 0, oy = 0;
+
+  // Convert initial bottom/left to top/left so transforms are consistent
+  function toTopLeft(){
+    const wr = wrap.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    el.style.bottom = 'auto';
+    el.style.right  = 'auto';
+    el.style.top    = (er.top - wr.top) + 'px';
+    el.style.left   = (er.left - wr.left) + 'px';
+  }
+
+  function clamp(val, min, max){ return Math.min(Math.max(val, min), max); }
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    toTopLeft();
+    dragging = true;
+    ox = e.clientX - el.offsetLeft;
+    oy = e.clientY - el.offsetTop;
+    el.classList.add('dragging');
+  });
+
+  handle.addEventListener('touchstart', e => {
+    toTopLeft();
+    dragging = true;
+    const t = e.touches[0];
+    ox = t.clientX - el.offsetLeft;
+    oy = t.clientY - el.offsetTop;
+    el.classList.add('dragging');
+  }, {passive:true});
+
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const wr = wrap.getBoundingClientRect();
+    const nx = clamp(e.clientX - ox, 0, wr.width  - el.offsetWidth);
+    const ny = clamp(e.clientY - oy, 0, wr.height - el.offsetHeight);
+    el.style.left = nx + 'px';
+    el.style.top  = ny + 'px';
+  });
+
+  document.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const t  = e.touches[0];
+    const wr = wrap.getBoundingClientRect();
+    const nx = clamp(t.clientX - ox, 0, wr.width  - el.offsetWidth);
+    const ny = clamp(t.clientY - oy, 0, wr.height - el.offsetHeight);
+    el.style.left = nx + 'px';
+    el.style.top  = ny + 'px';
+  }, {passive:true});
+
+  document.addEventListener('mouseup',  () => { dragging=false; el.classList.remove('dragging'); });
+  document.addEventListener('touchend', () => { dragging=false; el.classList.remove('dragging'); });
+})();
 
 // ═══════════════════════════════════════════
 //  INITIALIZATION
 // ═══════════════════════════════════════════
-startBtn.addEventListener('click', async () => {
-  startBtn.textContent = 'Loading...';
-  startBtn.disabled    = true;
-  initAudio();
-  statusTxt.textContent = 'LOADING MODEL';
+startBtn.addEventListener('click',async()=>{
+  startBtn.textContent='Loading...'; startBtn.disabled=true;
+  initAudio(); statusTxt.textContent='LOADING MODEL';
 
-  const detector = new Hands({
-    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  const detector=new Hands({
+    locateFile:file=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
   });
-  detector.setOptions({
-    maxNumHands: 1, modelComplexity: 1,
-    minDetectionConfidence: 0.7, minTrackingConfidence: 0.5
-  });
+  detector.setOptions({maxNumHands:1,modelComplexity:1,
+    minDetectionConfidence:.7,minTrackingConfidence:.5});
   detector.onResults(onResults);
 
-  const cam = new Camera(video, {
-    onFrame: async () => { await detector.send({ image: video }); },
-    width: 640, height: 480
+  const cam=new Camera(video,{
+    onFrame:async()=>{ await detector.send({image:video}); },
+    width:640,height:480
   });
   await cam.start();
   startOver.classList.add('gone');
-  statusTxt.textContent = 'SEARCHING';
+  statusTxt.textContent='SEARCHING';
 });
 </script>
 </body>
