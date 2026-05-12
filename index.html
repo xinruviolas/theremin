@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Theremin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,500&family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --cream:     #FDF3E0;
+      --cream-md:  #F5E4C0;
+      --cream-dk:  #E8D098;
+      --tan:       #D4A860;
+      --orange:    #C86030;
+      --marigold:  #E08840;
+      --sage:      #6A8E6A;
+      --brown:     #4A2C14;
+      --taupe:     #7A5030;
+      --cam-bg:    #180E04;
+    }
+
+    html, body { height: 100%; background: var(--cream); color: var(--brown); overflow: hidden; }
+
+    body {
+      display: grid;
+      grid-template-rows: 56px 1fr 50px;
+      height: 100vh;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+    }
+
+    /* ── Header ───────────────────────────────────────────── */
+    header {
+      background: var(--orange);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+    }
+
+    .logo { display: flex; align-items: baseline; gap: 12px; }
+
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic; font-weight: 500;
+      font-size: 1.85rem; letter-spacing: 0.03em;
+      color: var(--cream);
+    }
+
+    .tagline {
+      font-size: 0.57rem; letter-spacing: 0.24em;
+      color: rgba(253,243,224,0.6); text-transform: uppercase;
+    }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      border: 1.5px solid rgba(253,243,224,0.3);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 0.58rem; letter-spacing: 0.2em;
+      color: rgba(253,243,224,0.7);
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(253,243,224,0.25); transition: all 0.4s; }
+    .dot.live { background: var(--cream); box-shadow: 0 0 8px rgba(253,243,224,0.6); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+
+    /* ── Main ─────────────────────────────────────────────── */
+    main { display: grid; grid-template-columns: 1fr 258px; overflow: hidden; }
+
+    /* ── Camera ───────────────────────────────────────────── */
+    .cam-wrap { position: relative; background: var(--cam-bg); overflow: hidden; }
+
+    video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+
+    #overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    .scanlines {
+      position: absolute; inset: 0; pointer-events: none; z-index: 5;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(200,136,64,0.07) 3px, rgba(200,136,64,0.07) 4px
+      );
+    }
+
+    /* Film grain — background-image filled by JS */
+    .grain {
+      position: absolute; inset: 0; pointer-events: none; z-index: 6;
+      opacity: 0.13; background-size: 256px 256px;
+    }
+
+    /* Corner brackets */
+    .brackets { position: absolute; inset: 16px; z-index: 7; pointer-events: none; }
+    .br { position: absolute; width: 22px; height: 22px; }
+    .br-tl { top:0;left:0;   border-top:2px solid var(--marigold); border-left:2px solid var(--marigold);   border-radius:5px 0 0 0; }
+    .br-tr { top:0;right:0;  border-top:2px solid var(--marigold); border-right:2px solid var(--marigold);  border-radius:0 5px 0 0; }
+    .br-bl { bottom:0;left:0;  border-bottom:2px solid var(--marigold); border-left:2px solid var(--marigold);  border-radius:0 0 0 5px; }
+    .br-br { bottom:0;right:0; border-bottom:2px solid var(--marigold); border-right:2px solid var(--marigold); border-radius:0 0 5px 0; }
+
+    .hud { position: absolute; top: 22px; left: 22px; z-index: 8; pointer-events: none; }
+    .hud-line { font-size: 0.54rem; letter-spacing: 0.18em; color: rgba(224,168,112,0.65); margin-bottom: 4px; }
+
+    /* ── Start overlay ────────────────────────────────────── */
+    #startOverlay {
+      position: absolute; inset: 0; z-index: 30;
+      background: rgba(24,14,4,0.90);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      transition: opacity 0.6s ease;
+    }
+    #startOverlay.gone { opacity: 0; pointer-events: none; }
+
+    #startBtn {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic; font-size: 1.55rem;
+      color: var(--cream); background: var(--orange);
+      border: none; border-radius: 40px;
+      padding: 11px 44px; cursor: pointer;
+      letter-spacing: 0.05em; transition: all 0.2s;
+    }
+    #startBtn:hover  { background: var(--marigold); }
+    #startBtn:active { transform: scale(0.97); }
+    #startBtn:disabled { opacity: 0.5; cursor: default; }
+
+    .start-hint {
+      font-size: 0.58rem; letter-spacing: 0.1em;
+      color: rgba(224,168,112,0.55); text-align: center; line-height: 1.9;
+    }
+
+    /* ── Right panel ──────────────────────────────────────── */
+    .panel {
+      border-left: 2px solid var(--tan);
+      background: var(--cream-md);
+      display: flex; flex-direction: column; overflow: hidden;
+      position: relative;
+    }
+
+    /* 70s dot wallpaper */
+    .panel::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle, var(--tan) 1.2px, transparent 1.2px);
+      background-size: 14px 14px; opacity: 0.28;
+    }
+
+    .pblock {
+      padding: 14px 18px; border-bottom: 1.5px solid var(--cream-dk);
+      flex-shrink: 0; position: relative; z-index: 1;
+    }
+    .pblock.grow { flex: 1; display: flex; flex-direction: column; }
+
+    .plabel {
+      font-size: 0.54rem; letter-spacing: 0.3em;
+      color: var(--taupe); text-transform: uppercase; margin-bottom: 5px;
+    }
+
+    .note-big {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic; font-size: 5.2rem; line-height: 0.92;
+      color: var(--orange); letter-spacing: 0.02em;
+    }
+
+    .freq-read { font-family: 'VT323', monospace; font-size: 2rem; line-height: 1; color: var(--brown); }
+    .freq-unit { font-size: 0.85rem; color: var(--taupe); }
+
+    .hbar-track { height: 6px; background: var(--cream-dk); border-radius: 3px; margin-top: 4px; }
+    .hbar-fill  { height: 100%; border-radius: 3px; width: 0%; transition: width 0.07s; background: linear-gradient(to right, var(--sage), var(--marigold)); }
+
+    .meters { flex: 1; display: flex; gap: 10px; align-items: flex-end; }
+    .mcol   { flex: 1; display: flex; flex-direction: column; height: 100%; }
+    .mtrack { flex: 1; background: var(--cream-dk); border-radius: 4px 4px 0 0; display: flex; align-items: flex-end; }
+    .mfill  { width: 100%; height: 0%; transition: height 0.07s; border-radius: 4px 4px 0 0; }
+    .pitch-fill { background: linear-gradient(to top, var(--orange), var(--marigold)); }
+    .vol-fill   { background: linear-gradient(to top, var(--sage), #9ABE8A); }
+
+    .instr { font-size: 0.6rem; color: var(--taupe); line-height: 2.1; letter-spacing: 0.06em; }
+    .instr .k { color: var(--orange); }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    footer {
+      border-top: 2px solid var(--tan); background: var(--cream);
+      display: flex; align-items: center; gap: 14px; padding: 0 22px;
+    }
+
+    .foot-label { font-size: 0.54rem; letter-spacing: 0.22em; color: var(--taupe); white-space: nowrap; }
+
+    #waveform { flex: 1; height: 28px; display: block; }
+
+    .wave-btns { display: flex; gap: 5px; }
+    .wbtn {
+      font-family: 'Share Tech Mono', monospace; font-size: 0.56rem; letter-spacing: 0.1em;
+      color: var(--taupe); background: transparent;
+      border: 1.5px solid var(--cream-dk); padding: 3px 10px; border-radius: 14px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .wbtn.active, .wbtn.on { color: var(--cream); background: var(--orange); border-color: var(--orange); }
+    .wbtn:hover:not(.active):not(.on) { border-color: var(--taupe); color: var(--brown); }
+
+    .divider { width: 1.5px; background: var(--tan); height: 22px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <h1>Theremin</h1>
+    <span class="tagline">Webcam Instrument</span>
+  </div>
+  <div class="status-pill">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">STANDBY</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="cam-wrap">
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="overlay"></canvas>
+    <div class="scanlines"></div>
+    <div class="grain" id="grainLayer"></div>
+    <div class="brackets">
+      <div class="br br-tl"></div><div class="br br-tr"></div>
+      <div class="br br-bl"></div><div class="br br-br"></div>
+    </div>
+    <div class="hud">
+      <div class="hud-line">↕ HEIGHT → PITCH</div>
+      <div class="hud-line">↔ POSITION → VOLUME</div>
+    </div>
+    <div id="startOverlay">
+      <button id="startBtn">Initialize</button>
+      <span class="start-hint">Requires camera permission<br>Audio activates on click</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="pblock">
+      <div class="plabel">Note</div>
+      <div class="note-big" id="noteDisplay">—</div>
+    </div>
+    <div class="pblock">
+      <div class="plabel">Frequency</div>
+      <div class="freq-read" id="freqDisplay">—<span class="freq-unit"> Hz</span></div>
+    </div>
+    <div class="pblock">
+      <div class="plabel">Volume</div>
+      <div class="hbar-track"><div class="hbar-fill" id="volBar"></div></div>
+    </div>
+    <div class="pblock grow">
+      <div class="plabel">Levels</div>
+      <div class="meters">
+        <div class="mcol">
+          <div class="plabel" style="font-size:0.46rem;margin-bottom:3px;">PITCH</div>
+          <div class="mtrack"><div class="mfill pitch-fill" id="pitchBar"></div></div>
+        </div>
+        <div class="mcol">
+          <div class="plabel" style="font-size:0.46rem;margin-bottom:3px;">VOL</div>
+          <div class="mtrack"><div class="mfill vol-fill" id="volBarV"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="pblock">
+      <div class="plabel">Controls</div>
+      <div class="instr">
+        <span class="k">↕ Hand height</span> → pitch<br>
+        <span class="k">↔ Left / right</span> → volume<br>
+        <span class="k">No hand</span> → silence
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span class="foot-label">WAVEFORM</span>
+  <canvas id="waveform"></canvas>
+  <div class="wave-btns">
+    <button class="wbtn active" data-wave="sine">SINE</button>
+    <button class="wbtn" data-wave="triangle">TRI</button>
+    <button class="wbtn" data-wave="sawtooth">SAW</button>
+    <button class="wbtn" data-wave="square">SQR</button>
+  </div>
+  <div class="divider"></div>
+  <button id="autotuneBtn" class="wbtn" style="white-space:nowrap;">♪ C major</button>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+<script>
+// ═══════════════════════════════════════════
+//  GRAIN TEXTURE — generated at runtime
+// ═══════════════════════════════════════════
+(function () {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const x = c.getContext('2d');
+  const img = x.createImageData(256, 256);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  document.getElementById('grainLayer').style.backgroundImage = `url(${c.toDataURL()})`;
+})();
+
+// ═══════════════════════════════════════════
+//  AUDIO ENGINE
+// ═══════════════════════════════════════════
+let audioCtx, osc, gainNode, analyser;
+let targetFreq = 440, targetGain = 0;
+let smoothFreq  = 440, smoothGain  = 0;
+
+const FREQ_MIN = 220.00; // A3
+const FREQ_MAX = 880.00; // A5
+
+// ═══════════════════════════════════════════
+//  AUTOTUNE — SNAP TO C MAJOR
+// ═══════════════════════════════════════════
+let autotuneOn = false;
+const C_MAJOR_PCS = [0, 2, 4, 5, 7, 9, 11];
+
+function snapToCMajor(freq) {
+  const exactMidi   = 12 * Math.log2(freq / 440) + 69;
+  const roundedMidi = Math.round(exactMidi);
+  const pc          = ((roundedMidi % 12) + 12) % 12;
+  if (C_MAJOR_PCS.includes(pc)) return 440 * Math.pow(2, (roundedMidi - 69) / 12);
+  let bestOffset = 0, bestDist = Infinity;
+  for (const target of C_MAJOR_PCS) {
+    const up   = ((target - pc) + 12) % 12;
+    const down = ((pc - target) + 12) % 12;
+    const offset = up <= down ? up : -down;
+    if (Math.abs(offset) < bestDist) { bestDist = Math.abs(offset); bestOffset = offset; }
+  }
+  return 440 * Math.pow(2, (roundedMidi + bestOffset - 69) / 12);
+}
+
+function initAudio() {
+  audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+  osc       = audioCtx.createOscillator();
+  gainNode  = audioCtx.createGain();
+  analyser  = audioCtx.createAnalyser();
+  analyser.fftSize = 256;
+  osc.type = 'sine';
+  osc.frequency.value = 440;
+  gainNode.gain.value = 0;
+  osc.connect(gainNode);
+  gainNode.connect(analyser);
+  analyser.connect(audioCtx.destination);
+  osc.start();
+  animate();
+}
+
+function tickAudio() {
+  const lf = autotuneOn ? 0.35 : 0.12, lg = 0.08;
+  smoothFreq += (targetFreq - smoothFreq) * lf;
+  smoothGain += (targetGain - smoothGain) * lg;
+  if (osc) {
+    osc.frequency.value = smoothFreq;
+    gainNode.gain.value = Math.max(0, smoothGain);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  NOTE NAMES
+// ═══════════════════════════════════════════
+const NOTES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+function freqToNote(f) {
+  const s = Math.round(12 * Math.log2(f / 440)) + 69;
+  return NOTES[((s % 12) + 12) % 12] + (Math.floor(s / 12) - 1);
+}
+
+// ═══════════════════════════════════════════
+//  UI REFS
+// ═══════════════════════════════════════════
+const noteDisp  = document.getElementById('noteDisplay');
+const freqDisp  = document.getElementById('freqDisplay');
+const volBar    = document.getElementById('volBar');
+const volBarV   = document.getElementById('volBarV');
+const pitchBar  = document.getElementById('pitchBar');
+const statusDot = document.getElementById('statusDot');
+const statusTxt = document.getElementById('statusText');
+const startBtn  = document.getElementById('startBtn');
+const startOver = document.getElementById('startOverlay');
+
+// ═══════════════════════════════════════════
+//  CANVAS OVERLAY
+// ═══════════════════════════════════════════
+const video  = document.getElementById('video');
+const canvas = document.getElementById('overlay');
+const ctx    = canvas.getContext('2d');
+
+function syncCanvas() { canvas.width = video.offsetWidth; canvas.height = video.offsetHeight; }
+
+// ═══════════════════════════════════════════
+//  WAVEFORM DISPLAY
+// ═══════════════════════════════════════════
+const wfCanvas = document.getElementById('waveform');
+const wfCtx    = wfCanvas.getContext('2d');
+
+function drawWaveform() {
+  const W = wfCanvas.offsetWidth, H = wfCanvas.offsetHeight;
+  wfCanvas.width = W; wfCanvas.height = H;
+  if (!analyser) { wfCtx.clearRect(0, 0, W, H); return; }
+  const buf = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(buf);
+  wfCtx.clearRect(0, 0, W, H);
+  wfCtx.strokeStyle = smoothGain > 0.01 ? '#C86030' : '#D4A860';
+  wfCtx.lineWidth   = 1.5;
+  wfCtx.beginPath();
+  const step = W / buf.length; let x = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const y = (buf[i] / 128.0) * (H / 2);
+    i === 0 ? wfCtx.moveTo(x, y) : wfCtx.lineTo(x, y);
+    x += step;
+  }
+  wfCtx.stroke();
+}
+
+function animate() { requestAnimationFrame(animate); tickAudio(); drawWaveform(); }
+
+// ═══════════════════════════════════════════
+//  HAND TRACKING
+// ═══════════════════════════════════════════
+function onResults(results) {
+  syncCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Mirror canvas to align with CSS-mirrored video
+  ctx.save();
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+
+  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+    const lm = results.multiHandLandmarks[0];
+
+    // Skeleton in warm marigold
+    drawConnectors(ctx, lm, HAND_CONNECTIONS, { color: 'rgba(224,136,64,0.38)', lineWidth: 2 });
+
+    // Joint dots in orange
+    drawLandmarks(ctx, lm, {
+      color: 'rgba(200,96,48,0.85)',
+      fillColor: 'rgba(24,14,4,0.65)',
+      lineWidth: 1, radius: 3
+    });
+
+    // Index fingertip (landmark 8) — sage green
+    const tip = lm[8];
+    const tx  = tip.x * canvas.width;
+    const ty  = tip.y * canvas.height;
+
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = 'rgba(106,142,106,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx, canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(canvas.width, ty);  ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.beginPath(); ctx.arc(tx, ty, 13, 0, Math.PI * 2);
+    ctx.strokeStyle = '#6A8E6A'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(tx, ty, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#6A8E6A'; ctx.fill();
+
+    ctx.restore();
+
+    // Map to audio
+    const pitchNorm = 1 - tip.y;
+    const rawFreq   = FREQ_MIN * Math.pow(FREQ_MAX / FREQ_MIN, pitchNorm);
+    targetFreq = autotuneOn ? snapToCMajor(rawFreq) : rawFreq;
+    targetGain = tip.x * 0.45;
+
+    const volPct = (targetGain / 0.45) * 100;
+    noteDisp.textContent = freqToNote(smoothFreq);
+    freqDisp.innerHTML   = `${Math.round(smoothFreq)}<span class="freq-unit"> Hz</span>`;
+    volBar.style.width    = volPct + '%';
+    volBarV.style.height  = volPct + '%';
+    pitchBar.style.height = (pitchNorm * 100) + '%';
+    statusDot.classList.add('live');
+    statusTxt.textContent = 'PLAYING';
+
+  } else {
+    ctx.restore();
+    targetGain = 0;
+    noteDisp.textContent  = '—';
+    freqDisp.innerHTML    = `—<span class="freq-unit"> Hz</span>`;
+    volBar.style.width    = '0%';
+    volBarV.style.height  = '0%';
+    statusDot.classList.remove('live');
+    statusTxt.textContent = 'NO SIGNAL';
+  }
+}
+
+// ═══════════════════════════════════════════
+//  WAVE TYPE SELECTOR
+// ═══════════════════════════════════════════
+document.querySelectorAll('.wbtn[data-wave]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.wbtn[data-wave]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (osc) osc.type = btn.dataset.wave;
+  });
+});
+
+// ═══════════════════════════════════════════
+//  AUTOTUNE TOGGLE
+// ═══════════════════════════════════════════
+const autotuneBtn = document.getElementById('autotuneBtn');
+autotuneBtn.addEventListener('click', () => {
+  autotuneOn = !autotuneOn;
+  autotuneBtn.classList.toggle('on', autotuneOn);
+});
+
+// ═══════════════════════════════════════════
+//  INITIALIZATION
+// ═══════════════════════════════════════════
+startBtn.addEventListener('click', async () => {
+  startBtn.textContent = 'Loading...';
+  startBtn.disabled    = true;
+  initAudio();
+  statusTxt.textContent = 'LOADING MODEL';
+
+  const detector = new Hands({
+    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  });
+  detector.setOptions({
+    maxNumHands: 1, modelComplexity: 1,
+    minDetectionConfidence: 0.7, minTrackingConfidence: 0.5
+  });
+  detector.onResults(onResults);
+
+  const cam = new Camera(video, {
+    onFrame: async () => { await detector.send({ image: video }); },
+    width: 640, height: 480
+  });
+  await cam.start();
+  startOver.classList.add('gone');
+  statusTxt.textContent = 'SEARCHING';
+});
+</script>
+</body>
+</html>
